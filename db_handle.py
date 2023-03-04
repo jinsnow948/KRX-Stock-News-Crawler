@@ -30,20 +30,32 @@ def execute_insert_query(conn, query):
     conn.commit()
 
 
-def drop_tables(conn):
-    drop_table_query1 = """
+def drop_tables_stock_trading(conn):
+    drop_table_query = """
     DROP TABLE IF EXISTS stock_trading;
     """
-    drop_table_query2 = """
+    execute_query(conn, drop_table_query)
+    print(f"stock_trading table is DROPPED!")
+
+
+def drop_tables_stock_news(conn):
+    drop_table_query = """
     DROP TABLE IF EXISTS stock_news;
     """
-    execute_query(conn, drop_table_query1)
-    execute_query(conn, drop_table_query2)
-    print(f"stock_trading, stock_news 테이블이 DROP 되었습니다.")
+    execute_query(conn, drop_table_query)
+    print(f"stock_news table is DROPPED!")
 
 
-def create_tables(conn):
-    create_table_query1 = """
+def drop_tables_stock_issues(conn):
+    drop_table_query = """
+    DROP TABLE IF EXISTS stock_issues;
+    """
+    execute_query(conn, drop_table_query)
+    print(f"stock_issues table is DROPPED!")
+
+
+def create_table_stock_trading(conn):
+    create_table_query = """
     CREATE TABLE IF NOT EXISTS stock_trading (
         code varchar(20) NOT NULL,
         trading_date date NOT NULL,
@@ -55,7 +67,11 @@ def create_tables(conn):
         PRIMARY KEY (code,trading_date)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     """
-    create_table_query2 = """
+    execute_query(conn, create_table_query)
+
+
+def create_table_stock_news(conn):
+    create_table_query = """
     CREATE TABLE IF NOT EXISTS stock_news (
         code VARCHAR(20) NOT NULL,
         article_date date NOT NULL,
@@ -65,5 +81,18 @@ def create_tables(conn):
         PRIMARY KEY (code, article_date, title)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     """
-    execute_query(conn, create_table_query1)
-    execute_query(conn, create_table_query2)
+    execute_query(conn, create_table_query)
+
+
+def create_table_stock_issues(conn):
+    create_table_query = """
+    CREATE TABLE IF NOT EXISTS stock_issues (
+        report_time DATETIME NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        stock_name VARCHAR(255) NOT NULL,
+        news_link VARCHAR(255),
+        news_content TEXT,
+        PRIMARY KEY (report_time, title, stock_name)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    """
+    execute_query(conn, create_table_query)
