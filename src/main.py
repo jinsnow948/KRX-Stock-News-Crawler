@@ -1,16 +1,14 @@
-import asyncio
+import pytz
 
 from db_handle import *
 import traceback
 
 from crawl_data import *
-from newsbot import bot_main
 
 if __name__ == "__main__":
-    with open('config/config.json') as f:
+    with open('../config/config.json') as f:
         config = json.load(f)
 
-    telegram_channel = config['telegram_channel'],
     # MySQL 연결 설정
     conn = db_handle.connect_db()
 
@@ -18,20 +16,14 @@ if __name__ == "__main__":
     # cursor = conn.cursor()
 
     # 날짜 구하기
-    end_date = datetime.now()
+    kst_timezone = pytz.timezone('Asia/Seoul')
+    end_date = datetime.now() - timedelta(days=config['end_date'])
+    start_date = end_date - timedelta(days=config['start_date'])
+    print(f'start_date : {start_date}, end_date : {end_date}')
+
     end_date_str = end_date.strftime('%Y%m%d')
-
-    start_date = end_date - timedelta(days=30)
     start_date_str = start_date.strftime('%Y%m%d')
-    '''
-    end_date_str = "20230224"
-    end_date = datetime.strptime(end_date_str, '%Y%m%d')
 
-    start_date = end_date - timedelta(days=30)
-    start_date_str = start_date.strftime('%Y%m%d')
-    '''
-
-    print(f'start_date : {start_date} , end_date : {end_date}')
     confirmation = input(f"DROP the tables 'stock_trading' and 'stock_news'? (y/n): ")
 
     # 테이블 삭제 유무
@@ -54,9 +46,3 @@ except Exception as e:
 finally:
     # Connection 닫기
     conn.close()
-
-try:
-    asyncio.run(bot_main(telegram_channel))
-except Exception as e:
-    print(str(e))
-    traceback.print_exc()

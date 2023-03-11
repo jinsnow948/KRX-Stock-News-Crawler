@@ -12,7 +12,6 @@ def insert_stock_trading_data(conn, codes):
     news_code = []
     trade_list = []
     for dt, code in codes:
-        print(f'dt : {dt}, code : {code}')
         name = stock.get_market_ticker_name(code)
 
         # 매매주체별 거래대금
@@ -21,7 +20,7 @@ def insert_stock_trading_data(conn, codes):
             df2.insert(0, 'code', code)
             df2.reset_index(inplace=True)
         except Exception as e:
-            logging.error(f"Failed to fetch market_trading_value: {e}")
+            logging.error(f"get_market_trading_value_by_date error {e} dt {dt}, code {code}");
             return []
 
         for i, row in df2.iterrows():
@@ -33,6 +32,7 @@ def insert_stock_trading_data(conn, codes):
                     (row['code'], trading_date, name, row['외국인합계'], row['기관합계'], row['개인'], row['전체']))
 
         if code not in news_code:
+            print(f'append news code : {code}')
             news_code.append(code)
 
     if trade_list:
@@ -115,12 +115,12 @@ def scrap_stock_data(start_date, end_date):
         try:
             kospi_ohlcv = stock.get_market_ohlcv(start_date.strftime('%Y%m%d'), market='KOSPI')
         except Exception as e:
-            logging.error(f"Failed to fetch KOSPI OHLCV: {e}")
+            logging.error(f"Failed to fetch KOSPI OHLCV: {e}, start_date {start_date.strftime('%Y%m%d')}")
             return []
         try:
             kosdaq_ohlcv = stock.get_market_ohlcv(start_date.strftime('%Y%m%d'), market='KOSDAQ')
         except Exception as e:
-            logging.error(f"Failed to fetch KOSDAQ OHLCV: {e}")
+            logging.error(f"Failed to fetch KOSDAQ OHLCV: {e}, start_date {start_date.strftime('%Y%m%d')}")
             return []
 
         # 거래대금이 500억 이상인 종목 필터링
