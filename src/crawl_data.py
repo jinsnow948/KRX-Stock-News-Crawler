@@ -4,7 +4,8 @@ from datetime import datetime, timedelta
 import requests
 from bs4 import BeautifulSoup
 from pykrx import stock
-
+import FinanceDataReader as fdr
+import pandas as pd
 import db_handle
 
 
@@ -12,15 +13,24 @@ def insert_stock_trading_data(conn, codes):
     news_code = []
     trade_list = []
     for dt, code in codes:
-        name = stock.get_market_ticker_name(code)
+        # name = stock.get_market_ticker_name(code)
+        # fdr 로 대체
+        name = fdr.StockListing('KRX').loc[fdr.StockListing().Symbol == code]['Name'].values[0]
+
 
         # 매매주체별 거래대금
         try:
-            df2 = stock.get_market_trading_value_by_date(dt, dt, code)
-            df2.insert(0, 'code', code)
+            # df2 = stock.get_market_trading_value_by_date(dt, dt, code)
+            # df2.insert(0, 'code', code)
+            # df2.reset_index(inplace=True)
+
+            # fdr 로 대체
+            df2 = fdr.StockDailyAdr(date=dt, symbol=code, market=None, country='KR', delay=0, session=None)
             df2.reset_index(inplace=True)
+
+            print(f'df2 : {df2}')
         except Exception as e:
-            logging.error(f"get_market_trading_value_by_date error {e} dt {dt}, code {code}");
+            logging.error(f"StockDailyAdr error {e} dt {dt}, code {code}");
             return []
 
         for i, row in df2.iterrows():
@@ -32,7 +42,7 @@ def insert_stock_trading_data(conn, codes):
                     (row['code'], trading_date, name, row['외국인합계'], row['기관합계'], row['개인'], row['전체']))
 
         if code not in news_code:
-            print(f'append news code : {code}')
+            # print(f'append news code : {code}')
             news_code.append(code)
 
     if trade_list:
@@ -51,7 +61,9 @@ def insert_stock_trading_data(conn, codes):
 # 뉴스 크롤링 함수
 def crawl_news(conn, code):
     # pykrx 라이브러리를 이용해서 종목 코드에 해당하는 종목명 조회
-    name = stock.get_market_ticker_name(code)
+    # name = stock.get_market_ticker_name(code)
+    # fdr로 대체
+    name = fdr.StockListing().loc[fdr.StockListing().Symbol == code]['Name'].values[0]
 
     url = f'https://finance.naver.com/item/news_news.nhn?code={code}&page=1&sm=title_entity_id.basic&clusterId='
     req = requests.get(url)
@@ -110,28 +122,17 @@ def scrap_stock_data(start_date, end_date):
     kospi_codes = []
     kosdaq_codes = []
 
-    while start_date <= end_date:
-        # 일별 시세 조회
-        try:
-            kospi_ohlcv = stock.get_market_ohlcv(start_date.strftime('%Y%m%d'), market='KOSPI')
-        except Exception as e:
-            logging.error(f"Failed to fetch KOSPI OHLCV: {e}, start_date {start_date.strftime('%Y%m%d')}")
-            return []
-        try:
-            kosdaq_ohlcv = stock.get_market_ohlcv(start_date.strftime('%Y%m%d'), market='KOSDAQ')
-        except Exception as e:
-            logging.error(f"Failed to fetch KOSDAQ OHLCV: {e}, start_date {start_date.strftime('%Y%m%d')}")
-            return []
+    # KOSPI 데이터 가져오기
+    krx = fdr.StockListing('KRX')
+    # print(f'krx {krx}')
+    # print(f'columns {krx.columns}')
+    # print(fdr.DataReader('005930',start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d')))
+    # 거래대금이 500억 이상인 종목 필터링
+    filtered_kospi = krx[krx.apply(lambda x:
+                                   (df := fdr.DataReader(x['Code'], start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))) is not None and
+                                   ((df['Volume'] * df['Close']).iloc[-1] >= 50000000000) and
+                                   (len(df) > 0), axis=1)]
 
-        # 거래대금이 500억 이상인 종목 필터링
-        kospi_codes += [(start_date.strftime('%Y%m%d'), code) for code in
-                        kospi_ohlcv.loc[kospi_ohlcv['거래대금'] >= 50000000000].index.tolist()]
-        kosdaq_codes += [(start_date.strftime('%Y%m%d'), code) for code in
-                         kosdaq_ohlcv.loc[kosdaq_ohlcv['거래대금'] >= 50000000000].index.tolist()]
-        # 다음날로 이동
-        start_date += timedelta(days=1)
-
-    codes = kospi_codes + kosdaq_codes
-    print(codes)
-
-    return codes
+    # 결과 출력
+    result = [(start_date.strftime('%Y%m%d'), code) for code in filtered_kospi['Code']]
+    return result
