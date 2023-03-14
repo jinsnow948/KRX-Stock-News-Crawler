@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import requests
 from bs4 import BeautifulSoup
 from pykrx import stock
+# import win32com.client
 
 import db_handle
 
@@ -32,7 +33,6 @@ def insert_stock_trading_data(conn, codes):
                     (row['code'], trading_date, name, row['외국인합계'], row['기관합계'], row['개인'], row['전체']))
 
         if code not in news_code:
-            print(f'append news code : {code}')
             news_code.append(code)
 
     if trade_list:
@@ -46,6 +46,38 @@ def insert_stock_trading_data(conn, codes):
 
     for code in news_code:
         crawl_news(conn, code)
+
+
+'''
+def get_kiwoom_market_trading_value_by_date(date, code):
+    # 키움 API 객체 생성
+    kiwoom = win32com.client.Dispatch("KHOPENAPI.KHOpenAPI")
+
+    # 로그인
+    # ...
+
+    # TR 요청
+    kiwoom.SetInputValue("종목코드", code)
+    kiwoom.SetInputValue("기준일자", date)
+    kiwoom.SetInputValue("수정주가구분", "1")
+    kiwoom.CommRqData("opt10033", "OPT10033", 0, "0101")
+
+    # TR 결과 수신
+    while True:
+        event = kiwoom.GetCommEvent()
+        if event == "0":
+            break
+
+        if event == "2":
+            code = kiwoom.GetCommData("OPT10033", "종목코드", 0, "")
+            date = kiwoom.GetCommData("OPT10033", "일자", 0, "")
+            foreign_total = kiwoom.GetCommData("OPT10033", "외국인합계", 0, "")
+            institution = kiwoom.GetCommData("OPT10033", "기관합계", 0, "")
+            individual = kiwoom.GetCommData("OPT10033", "개인합계", 0, "")
+            agency_total = kiwoom.GetCommData("OPT10033", "전체합계", 0, "")
+
+            print(f"{code}, {date}, {foreign_total}, {institution}, {individual}, {agency_total}")
+'''
 
 
 # 뉴스 크롤링 함수
@@ -80,13 +112,6 @@ def crawl_news(conn, code):
             title = article.select_one('td.title a').text.replace("'", "''").replace('"', "''").replace('’', "''") \
                 .replace('‘', "''").replace('“', "''").replace('”', "''")  # 작은따옴표 두 개로 변경
             link = article.select_one('td.title a')['href']
-
-            # print(f'news {news}')
-            # Check for duplicates
-            # sql = f"SELECT count(*) FROM stock_news WHERE code='{code}' AND article_date='{article_date}' AND title = '{title}'"
-            # print(f'sql : {sql}')
-            # cursor.execute(sql)
-            # result = cursor.fetchone()
 
             # dup check
             if (code, article_date, title) not in [(row[0], row[1], row[2]) for row in news_list]:
@@ -132,6 +157,6 @@ def scrap_stock_data(start_date, end_date):
         start_date += timedelta(days=1)
 
     codes = kospi_codes + kosdaq_codes
-    print(codes)
+    # print(codes)
 
     return codes

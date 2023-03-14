@@ -24,6 +24,18 @@ if __name__ == "__main__":
     end_date_str = end_date.strftime('%Y%m%d')
     start_date_str = start_date.strftime('%Y%m%d')
 
+    code_list = scrap_stock_data(start_date, end_date)
+
+try:
+    insert_stock_trading_data(conn, code_list)
+except Exception as e:
+    print(str(e))
+    traceback.print_exc()
+finally:
+    # Connection 닫기
+    conn.close()
+
+'''
     confirmation = input(f"DROP the tables 'stock_trading' and 'stock_news'? (y/n): ")
 
     # 테이블 삭제 유무
@@ -36,13 +48,4 @@ if __name__ == "__main__":
     # 테이블 생성
     db_handle.create_table_stock_trading(conn)
     db_handle.create_table_stock_news(conn)
-
-    code_list = scrap_stock_data(start_date, end_date)
-try:
-    insert_stock_trading_data(conn, code_list)
-except Exception as e:
-    print(str(e))
-    traceback.print_exc()
-finally:
-    # Connection 닫기
-    conn.close()
+'''
